@@ -2,7 +2,8 @@ version: "3.9"
 
 services:
   pfdb:
-    image: bianjp/mariadb-alpine:latest
+    image: mariadb:latest
+    container_name: pf-db
     environment:
       MYSQL_ROOT_PASSWORD: $MYSQL_PASSWORD
     networks:
@@ -17,8 +18,8 @@ services:
     restart: always
   pf-redis:
     image: redis:6.2.5-alpine3.14
-    command: ["redis-server", "--appendonly", "yes"]
-    container_name: redis
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "64mb", "--maxmemory-policy", "allkeys-lru"]
+    container_name: pf-redis
     volumes:
       - redis_data:/data
       - /etc/timezone:/etc/timezone:ro
@@ -35,7 +36,10 @@ services:
   pf-socket:
     image: ghcr.io/goryn-clade/pf-websocket:latest
     command: ["--tcpHost", "0.0.0.0"]
-    container_name: socket
+    container_name: pf-socket
+    ports:
+      - "5555:5555"
+      - "8020:8020"
     networks:
       pf:
          aliases:
@@ -82,7 +86,7 @@ services:
     restart: always
   traefik:
     image: traefik:v2.3
-    container_name: traefik
+    container_name: pf-traefik
     command:
       - "--log.level=ERROR"
       - "--api.insecure=true"
